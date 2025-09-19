@@ -1,210 +1,265 @@
-# Sistema de Briefings - Frontend
+# Arquitetura AWS - Sistema de Briefings
 
-## 🚀 Aplicação Web Completa
-
-Esta é uma aplicação frontend completa para gerenciar e visualizar todo o processo de criação de briefings para eventos e patrocínios.
-
-## 📋 Funcionalidades
-
-### ✅ Implementadas
-- **Dashboard**: Visão geral com estatísticas e eventos próximos
-- **Novo Evento**: Formulário completo para cadastro de eventos
-- **Gerenciar Eventos**: Lista e edição de eventos existentes
-- **Briefings**: Visualização e gerenciamento de briefings gerados
-- **Templates**: Gerenciamento de templates de briefing
-- **Relatórios**: Analytics e métricas do sistema
-
-### 🎯 Principais Recursos
-- **Interface Responsiva**: Funciona em desktop, tablet e mobile
-- **Geração Automática**: Briefings criados automaticamente baseados nos dados
-- **Visualização Rica**: Modal com conteúdo completo dos briefings
-- **Navegação Intuitiva**: Sidebar com navegação clara
-- **Notificações**: Sistema de feedback para o usuário
-
-## 🛠️ Tecnologias Utilizadas
-
-- **HTML5**: Estrutura semântica
-- **CSS3**: Estilos modernos com Grid e Flexbox
-- **JavaScript ES6+**: Lógica da aplicação
-- **Font Awesome**: Ícones
-- **Design Responsivo**: Mobile-first approach
-
-## 📁 Estrutura de Arquivos
+## 🏗️ Diagrama de Arquitetura
 
 ```
-carol-project/
-├── index.html              # Página principal
-├── styles.css              # Estilos da aplicação
-├── script.js               # Lógica JavaScript
-├── README.md               # Este arquivo
-├── evento-briefing-system.md
-├── estrutura-projeto.md
-├── template-briefing-exemplo.md
-├── formulario-coleta-dados.md
-└── roadmap-implementacao.md
+┌─────────────────────────────────────────────────────────────────┐
+│                        USUÁRIOS FINAIS                          │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────────┐
+│                   CLOUDFRONT CDN                                │
+│              (Distribuição Global)                              │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────────┐
+│                     S3 BUCKET                                   │
+│              (Frontend Estático)                                │
+│  • index.html  • styles.css  • script.js                       │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────────┐
+│                 APPLICATION LOAD BALANCER                       │
+│                  (Distribuição de Tráfego)                      │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        │             │             │
+┌───────▼──────┐ ┌────▼────┐ ┌──────▼──────┐
+│   ECS FARGATE │ │ECS FARGATE│ │ ECS FARGATE │
+│   (Backend)   │ │ (Backend) │ │  (Backend)  │
+│ Auto Scaling  │ │Auto Scaling│ │Auto Scaling │
+└───────┬──────┘ └────┬────┘ └──────┬──────┘
+        │             │             │
+        └─────────────┼─────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────────┐
+│                      RDS AURORA                                 │
+│                 (Banco de Dados)                                │
+│              Multi-AZ + Read Replicas                           │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────────┐
+│                    ELASTICACHE                                  │
+│                     (Cache Redis)                               │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                   SERVIÇOS AUXILIARES                           │
+├─────────────────────────────────────────────────────────────────┤
+│  LAMBDA FUNCTIONS          │  S3 BUCKET (Docs)                  │
+│  • Geração de PDFs         │  • Templates                       │
+│  • Processamento Briefings │  • Briefings Gerados               │
+│  • Notificações           │  • Uploads                          │
+├─────────────────────────────────────────────────────────────────┤
+│  SES (Email)              │  CLOUDWATCH (Monitoramento)        │
+│  • Notificações           │  • Logs e Métricas                 │
+│  • Relatórios             │  • Alertas                         │
+├─────────────────────────────────────────────────────────────────┤
+│  COGNITO                  │  SECRETS MANAGER                    │
+│  • Autenticação           │  • Credenciais DB                  │
+│  • Autorização            │  • API Keys                        │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Como Usar
+## 🔧 Componentes da Arquitetura
 
-### 1. Abrir a Aplicação
-```bash
-# Navegue até a pasta do projeto
-cd carol-project
+### **Frontend (Camada de Apresentação)**
+- **S3 + CloudFront**: Hospedagem estática com CDN global
+- **Route 53**: DNS e roteamento
+- **Certificate Manager**: SSL/TLS
 
-# Abra o arquivo index.html em um navegador
-# Ou use um servidor local (recomendado)
-python3 -m http.server 8000
-# Acesse: http://localhost:8000
+### **Backend (Camada de Aplicação)**
+- **ECS Fargate**: Containers serverless auto-escaláveis
+- **Application Load Balancer**: Distribuição de carga
+- **API Gateway**: Gerenciamento de APIs REST
+
+### **Banco de Dados**
+- **RDS Aurora**: PostgreSQL Multi-AZ
+- **ElastiCache**: Redis para cache de sessões
+- **S3**: Armazenamento de documentos e templates
+
+### **Processamento**
+- **Lambda Functions**: Processamento serverless
+- **SQS**: Filas para processamento assíncrono
+- **EventBridge**: Orquestração de eventos
+
+### **Segurança e Monitoramento**
+- **Cognito**: Autenticação e autorização
+- **Secrets Manager**: Gerenciamento de credenciais
+- **CloudWatch**: Logs, métricas e alertas
+- **WAF**: Proteção contra ataques web
+
+## 💰 Estimativa de Custos (Mensal)
+
+### **Ambiente de Produção**
+```
+┌─────────────────────┬──────────────┬─────────────┐
+│ Serviço             │ Configuração │ Custo (USD) │
+├─────────────────────┼──────────────┼─────────────┤
+│ ECS Fargate         │ 2 vCPU, 4GB  │ $120        │
+│ RDS Aurora          │ db.r5.large  │ $180        │
+│ ElastiCache         │ cache.t3.micro│ $15         │
+│ S3 + CloudFront     │ 100GB        │ $25         │
+│ Lambda              │ 1M execuções │ $20         │
+│ Load Balancer       │ 1 ALB        │ $25         │
+│ Outros Serviços     │ Diversos     │ $35         │
+├─────────────────────┼──────────────┼─────────────┤
+│ TOTAL MENSAL        │              │ $420        │
+└─────────────────────┴──────────────┴─────────────┘
 ```
 
-### 2. Navegação Principal
-
-#### Dashboard
-- Visão geral com estatísticas
-- Eventos próximos
-- Briefings recentes
-
-#### Novo Evento
-1. Preencha as informações do evento
-2. Defina a estratégia
-3. Clique em "Gerar Briefings"
-4. Sistema cria automaticamente os 3 tipos de briefing
-
-#### Gerenciar Eventos
-- Lista todos os eventos
-- Editar eventos existentes
-- Ver briefings de cada evento
-
-#### Briefings
-- Visualizar todos os briefings gerados
-- Filtrar por evento ou tipo
-- Visualizar conteúdo completo
-- Download (simulado)
-
-### 3. Fluxo de Trabalho
-
+### **Ambiente de Desenvolvimento**
 ```
-1. Criar Novo Evento
-   ↓
-2. Sistema Gera Briefings Automaticamente
-   ↓
-3. Visualizar e Revisar Briefings
-   ↓
-4. Aprovar ou Editar
-   ↓
-5. Download para Execução
+┌─────────────────────┬──────────────┬─────────────┐
+│ Serviço             │ Configuração │ Custo (USD) │
+├─────────────────────┼──────────────┼─────────────┤
+│ ECS Fargate         │ 0.5 vCPU, 1GB│ $30         │
+│ RDS Aurora          │ db.t3.small  │ $60         │
+│ ElastiCache         │ cache.t3.micro│ $15         │
+│ S3 + CloudFront     │ 10GB         │ $5          │
+│ Lambda              │ 100K exec.   │ $2          │
+│ Outros Serviços     │ Diversos     │ $8          │
+├─────────────────────┼──────────────┼─────────────┤
+│ TOTAL MENSAL        │              │ $120        │
+└─────────────────────┴──────────────┴─────────────┘
 ```
 
-## 📊 Tipos de Briefing Gerados
+## 🚀 Estratégia de Deploy
 
-### 1. Comunicação Interna
-- Justificativa do patrocínio
-- Orçamento detalhado
-- Cronograma de ações
-- KPIs esperados
+### **Infraestrutura como Código**
+```yaml
+# terraform/main.tf
+provider "aws" {
+  region = "us-east-1"
+}
 
-### 2. Comunicação Externa
-- Objetivos de comunicação
-- Estratégia de canais
-- Cronograma de publicações
-- Hashtags e menções
+# VPC e Networking
+module "vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+  
+  name = "briefing-system-vpc"
+  cidr = "10.0.0.0/16"
+  
+  azs             = ["us-east-1a", "us-east-1b"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+  
+  enable_nat_gateway = true
+  enable_vpn_gateway = false
+}
 
-### 3. Briefing do Stand
-- Conceito visual
-- Layout detalhado
-- Experiência do visitante
-- Materiais promocionais
-- Equipe necessária
-- Métricas de sucesso
+# ECS Cluster
+resource "aws_ecs_cluster" "main" {
+  name = "briefing-system"
+  
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+}
 
-## 🎨 Interface
-
-### Design System
-- **Cores Principais**: Azul (#667eea), Roxo (#764ba2)
-- **Tipografia**: Segoe UI, sistema
-- **Componentes**: Cards, modais, formulários, tabelas
-- **Ícones**: Font Awesome 6.0
-
-### Responsividade
-- **Desktop**: Layout completo com sidebar
-- **Tablet**: Adaptação dos grids
-- **Mobile**: Sidebar colapsável, layout em coluna única
-
-## 🔧 Personalização
-
-### Adicionar Novos Tipos de Briefing
-1. Edite `script.js`
-2. Adicione nova função `gerarBriefing[Tipo](evento)`
-3. Atualize o array de tipos nos filtros
-
-### Modificar Templates
-1. Edite as funções `gerarBriefing*` em `script.js`
-2. Personalize o HTML gerado
-3. Ajuste estilos em `styles.css` se necessário
-
-### Integração com Backend
-```javascript
-// Exemplo de integração com API
-async function salvarEvento(evento) {
-    const response = await fetch('/api/eventos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(evento)
-    });
-    return response.json();
+# RDS Aurora
+resource "aws_rds_cluster" "aurora" {
+  cluster_identifier = "briefing-system-db"
+  engine            = "aurora-postgresql"
+  engine_version    = "13.7"
+  
+  database_name   = "briefings"
+  master_username = "admin"
+  
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  
+  backup_retention_period = 7
+  preferred_backup_window = "07:00-09:00"
+  
+  skip_final_snapshot = false
+  final_snapshot_identifier = "briefing-system-final-snapshot"
 }
 ```
 
-## 📈 Métricas Simuladas
+### **Pipeline CI/CD**
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy to AWS
 
-A aplicação inclui dados simulados para demonstração:
-- 12 eventos ativos
-- 36 briefings gerados
-- 85% taxa de aprovação
-- Redução de 68% no tempo
+on:
+  push:
+    branches: [main]
 
-## 🔮 Próximas Funcionalidades
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Deploy Frontend to S3
+      run: |
+        aws s3 sync ./frontend s3://briefing-system-frontend
+        aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_ID }} --paths "/*"
+    
+    - name: Deploy Backend to ECS
+      run: |
+        aws ecs update-service --cluster briefing-system --service backend --force-new-deployment
+```
 
-### Fase 2
-- [ ] Editor de briefings inline
-- [ ] Sistema de aprovação com workflow
-- [ ] Integração com calendário
-- [ ] Notificações por email
+## 📊 Monitoramento e Alertas
 
-### Fase 3
-- [ ] IA para sugestões automáticas
-- [ ] Integração com CRM
-- [ ] Analytics avançados
-- [ ] Mobile app
+### **CloudWatch Dashboards**
+- CPU e Memória dos containers
+- Latência das APIs
+- Erros de aplicação
+- Métricas de banco de dados
 
-## 🐛 Resolução de Problemas
+### **Alertas Configurados**
+- CPU > 80% por 5 minutos
+- Erro rate > 5%
+- Latência > 2 segundos
+- Falhas de deploy
 
-### Problemas Comuns
+## 🔒 Segurança
 
-**Modal não abre**
-- Verifique se o JavaScript está carregado
-- Abra o console do navegador para ver erros
+### **Controles Implementados**
+- WAF com regras OWASP
+- Cognito para autenticação
+- Secrets Manager para credenciais
+- VPC com subnets privadas
+- Security Groups restritivos
+- Criptografia em trânsito e repouso
 
-**Estilos não carregam**
-- Verifique se o arquivo `styles.css` está no mesmo diretório
-- Limpe o cache do navegador
+### **Compliance**
+- Logs de auditoria no CloudTrail
+- Backup automático do RDS
+- Versionamento no S3
+- Monitoramento de segurança
 
-**Formulário não funciona**
-- Verifique se todos os campos obrigatórios estão preenchidos
-- Abra o console para ver mensagens de erro
+## 🎯 Benefícios da Arquitetura
 
-## 📞 Suporte
+### **Escalabilidade**
+- Auto Scaling baseado em métricas
+- Serverless para picos de demanda
+- CDN global para performance
 
-Para dúvidas ou problemas:
-1. Verifique este README
-2. Consulte os comentários no código
-3. Abra o console do navegador para debug
+### **Disponibilidade**
+- Multi-AZ deployment
+- Load balancing automático
+- Failover de banco de dados
 
-## 🎯 Demonstração
+### **Custo-Efetividade**
+- Pay-as-you-use com Fargate
+- Reserved Instances para RDS
+- S3 Intelligent Tiering
 
-A aplicação está pronta para uso imediato com:
-- Dados de exemplo pré-carregados
-- Todos os fluxos funcionais
-- Interface completa e responsiva
-
-**Acesse `index.html` no navegador para começar!**
+### **Manutenibilidade**
+- Infraestrutura como código
+- CI/CD automatizado
+- Monitoramento centralizado
